@@ -1,22 +1,18 @@
 import cv2
 import os
-import re
-import sys
-import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.chart import Reference
 import easyocr
 reader = easyocr.Reader(['en'], gpu=True)
-sys.path.append("C:\\Users\\parkg\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages")
 
-VIDEO_PATH = 'video/video3.mp4'
+VIDEO_PATH = 'video/video5.mp4'
 HP_REGION_ORIGINAL = (288, 40, 22, 12)  # (x, y, w, h) → 수정 필요
 HP_REGION = (0,0,0,0)
 SIZE = (0,0)
 X_mutli = 1376
 Y_mutli = 776
 FRAME_INTERVAL_SEC = 0.75  # 1초 간격 # 0.75
-tick_max = 4.9 #100 #4.9 #0.9
+tick_max = 0.9  #100 #4.9 #0.9
+result_tick = 3.0
 
 
 def extract_frames(video_path, interval_sec=1):
@@ -114,7 +110,7 @@ def extract_hp_percent(image, t,thres):
         if(num_of_periods > 1):
             first_dot = res.find('.')
             res = res[:first_dot + 1] + res[first_dot + 1:].replace('.', '')
-        if(num_of_periods == 0 and t > 20):
+        if(num_of_periods == 0 and not (res == "100" and t < 20)):
             res = res[:-1] + '.' + res[-1]
         try:
             return float(res)
@@ -124,15 +120,6 @@ def extract_hp_percent(image, t,thres):
 
     return None
 
-def calculate_dps(hp_data):
-    dps_records = []
-    for i in range(1, len(hp_data)):
-        t0, hp0 = hp_data[i-1]
-        t1, hp1 = hp_data[i]
-        if hp1 is not None and hp0 is not None and hp1 < hp0:
-            dps = (hp0 - hp1) / (t1 - t0)
-            dps_records.append((t1, dps))
-    return dps_records
 
 def save_to_excel(data, filename="boss_hp_log.xlsx"):
     wb = load_workbook("boss_hp_log - template.xlsx")
@@ -171,7 +158,7 @@ def save_to_excel(data, filename="boss_hp_log.xlsx"):
 
 
     # 5. 차트 시트에 추가
-    ws.add_chart(chart, "J16")
+    ws.add_chart(chart, "L36")
     wb.save(filename)
 
     print(f"✅ 저장 완료: {filename}")
@@ -187,13 +174,13 @@ def main():
     if(SIZE[0] == 1376):
         threses.append(133)
     elif(SIZE[0] == 1920):
-        threses.append(135)
+        threses.append(133)
     elif(SIZE[0] == 1364):
-        threses.append(138)
+        threses.append(160)
     else:
         threses.append(130)
     for thres in threses: #130
-        hp_records = []
+        print(f"thres:{thres}")
         results = []
         error_total = 0
 
@@ -221,16 +208,11 @@ def main():
                 last_hp = hp
             
             print(f"{t:.1f}s: {hp}%")
-            hp_records.append((t, hp))
             results.append((round(t, 1), str(round(hp, 1))+"%"))
 
         print(f"thres = {thres}, last% = {last_hp}, fail_count = {error_total}")
-        dps_records = calculate_dps(hp_records)
-        if dps_records:
-            avg_dps = sum(d for _, d in dps_records) / len(dps_records)
-            print(f"✅ 평균 딜량: {avg_dps:.2f}%/sec")
-        else:
-            print("⚠️ 딜량 데이터를 추출할 수 없습니다.")
+
+    global result_tick
 
     # 5초마다 딜량 뽑기
     deals_5sec = []
@@ -241,7 +223,7 @@ def main():
         if(focus_sec < x_sec):
             deals_5sec.append((focus_sec,last_x[1]))
             print(f"{focus_sec}s: {last_x[1]}")
-            focus_sec += 3
+            focus_sec += result_tick
 
         last_x = x
 
