@@ -4,14 +4,15 @@ from openpyxl import load_workbook
 import easyocr
 reader = easyocr.Reader(['en'], gpu=True)
 
-VIDEO_PATH = 'video/video5.mp4'
+VIDEO_PATH = 'video/video9.mp4'
 HP_REGION_ORIGINAL = (288, 40, 22, 12)  # (x, y, w, h) → 수정 필요
+#HP_REGION_ORIGINAL = (262, 44, 22, 12)  # (x, y, w, h) → 수정 필요
 HP_REGION = (0,0,0,0)
 SIZE = (0,0)
 X_mutli = 1376
 Y_mutli = 776
 FRAME_INTERVAL_SEC = 0.75  # 1초 간격 # 0.75
-tick_max = 0.9  #100 #4.9 #0.9
+tick_max = 4.9  #100 #4.9 #0.9
 result_tick = 3.0
 
 
